@@ -8,122 +8,115 @@
 #include "Records.h"
 using namespace std;
 
-void readFile(const string& fileName, BTree &bTr, Trie &trie);
-
-int main() {
-    cout << "Welcome to Covid Prevention Data!" << endl;
-
-    // set up trees
-    BTree bTr();
-    Trie trie();
-    readFile("src/covid.csv", bTr, trie);
-
-    while (true) {
-        cout << "Enter 1 to view country data" << endl;
-        cout << "Enter 2 to view behavior data" << endl;
-        cout << "Enter 3 to toggle clock data" << endl;
-        cout << "Enter 0 to quit" << endl;
-        cout << "Input: ";
-
-        string dataView;
-        cin >> dataView;
-
-        if (dataView == "1") {
-            cout << "Enter a country (enter -1 to see list of valid countries): ";
-            string country;
-            cin >> country;
-
-            if (country == "-1") {
-                cout << "Countries include: ";
-            }
-            else {
-                bTr.find(country);
-                trie.find(country);
-            }
-        }
-        else if (dataView == "2") {
-            cout << "Enter a behavior (enter -1 to see list of valid behaviors): ";
-            string behavior;
-            cin >> behavior;
-
-            if (behavior == "-1") {
-                cout << "Behaviors include: ";
-            }
-            else {
-                bTr.find(behavior);
-                trie.find(behavior);
-            }
-        }
-        else if (dataView == "0") {
-            cout << "Goodbye!" << endl;
-            break;
-        }
-        else {
-            cout << "Invalid input!" << endl;
-        }
-    }
+long long safeStoll(const string& s) {
+    try { return s.empty() ? 0 : stoll(s); } catch (...) { return 0; }
+}
+int safeStoi(const string& s) {
+    try { return s.empty() ? 0 : stoi(s); } catch (...) { return 0; }
+}
+double safeStod(const string& s) {
+    try { return s.empty() ? 0.0 : stod(s); } catch (...) { return 0.0; }
 }
 
-void readFile(const string& fileName, BTree &bTr, Trie &trie) {
+void readFile(const string& fileName, Trie& trie, BTree& btree);
+
+int main() {
+    Trie trie;
+    BTree btree;
+
+    cout << "Loading datasets into B-Tree and Trie..." << endl;
+    readFile("covid.csv", trie, btree);
+    readFile("covid_behaviors.csv", trie, btree);
+
+    cout << "Data loaded successfully.\n";
+    cout << "Total countries stored: " << trie.getCountryCount() << endl;
+    cout << "Total records stored: " << trie.getRecordCount() << endl;
+
+    int choice;
+    while (true) {
+        cout << "\n--- COVID Data Tracker ---" << endl;
+        cout << "1. Search Country Data\n2. Exit\nChoice: ";
+        cin >> choice;
+
+        if (choice == 2) {
+            break;
+        } else if (choice == 1) {
+            cout << "Enter country name: ";
+            string country;
+            cin.ignore();
+            getline(cin, country);
+
+            if (trie.contains(country)) {
+                const auto* cases = trie.getCases(country);
+                const auto* behaviors = trie.getBehaviors(country);
+
+                cout << "\n--- Records for " << country << " ---\n";
+                cout << "Total Case Logs: " << (cases ? cases->size() : 0) << endl;
+                cout << "Total Behavior Logs: " << (behaviors ? behaviors->size() : 0) << endl;
+            } else {
+                cout << "\nCountry not found in the database.\n";
+            }
+        } else {
+            cout << "Invalid choice. Try again.\n";
+        }
+    }
+    return 0;
+}
+
+void readFile(const string& fileName, Trie& trie, BTree& btree) {
     ifstream file(fileName);
 
     if (!file.is_open()) {
-        cout << "Error: Failed to read file" << endl;
+        cout << "Error: Failed to read file " << fileName << endl;
         return;
     }
 
     string line;
     getline(file, line); // read header
+
     while (getline(file, line)) {
         vector<string> dataNode;
         stringstream lineStream(line);
         string singleData;
+
         while (getline(lineStream, singleData, ',')) {
             dataNode.push_back(singleData);
         }
 
         // categorize data based on file
-        if (fileName.ends_with("covid.csv")) {
-            int day = std::stoi(dataNode[0]);
-            int month = std::stoi(dataNode[1]);
-            int year = std::stoi(dataNode[2]);
-            long long cases = std::stoll(dataNode[3]);
-            long long deaths = std::stoll(dataNode[4]);
-            string country = dataNode[5];
-            long long population = std::stoll(dataNode[7]);
+        if (fileName.find("covid.csv") != string::npos && dataNode.size() >= 8) {
+            CaseRecord c;
+            c.day = safeStoi(dataNode[0]);
+            c.month = safeStoi(dataNode[1]);
+            c.year = safeStoi(dataNode[2]);
+            c.cases = safeStoll(dataNode[3]);
+            c.deaths = safeStoll(dataNode[4]);
+            c.country = dataNode[5];
+            c.population = safeStoll(dataNode[7]);
 
-            CaseRecord cRec(country, day, month, year, cases, deaths, population);
-            BTree.insert(cRec);
-            Trie.insert(cRec);
+            trie.insertCase(c);
+            btree.insertCase(c);
         }
-        else if (fileName.ends_with("covid_behaviors.csv")) {
-            string country = dataNode[0];
-            string days = dataNode[1];
-            double contacts = std::stod(dataNode[3]);
-            double timesLeftHome = std::stod(dataNode[4]);
-            double masksOutside = std::stod(dataNode[9]);
-            double masksGrocery = std::stod(dataNode[10]);
-            double masksWork = std::stod(dataNode[12]);
-            double avoidanceSymptomaticPeople = std::stod(dataNode[14]);
-            double avoidanceGoingOut = std::stod(dataNode[15]);
-            double avoidanceWorkOutsideHome = std::stod(dataNode[18]);
-            double avoidanceGuests = std::stod(dataNode[20]);
-            double avoidanceSmallGatherings = std::stod(dataNode[21]);
-            double avoidanceMediumGatherings = std::stod(dataNode[22]);
-            double avoidanceLargeGatherings = std::stod(dataNode[23]);
-            double outlookOnCovidDanger = std::stod(dataNode[29]);
-            double lifeImpacted = std::stod(dataNode[31]);
 
-            BehaviorRecord bRec(country, days, contacts, timesLeftHome, masksOutside, masksGrocery, masksWork,
-                avoidanceSymptomaticPeople, avoidanceGoingOut, avoidanceWorkOutsideHome, avoidanceGuests,
-                avoidanceSmallGatherings, avoidanceMediumGatherings, avoidanceLargeGatherings,
-                outlookOnCovidDanger, lifeImpacted);
-            BTree.insert(bRec);
-            Trie.insert(bRec);
-        }
-        else {
-            cout << "Error: Unknown file" << endl;
-            return;
+        else if (fileName.find("covid_behaviors.csv") != string::npos && dataNode.size() >= 32) {
+            BehaviorRecord b;
+            b.country = dataNode[0];
+            b.days = dataNode[1];
+            b.contacts = safeStod(dataNode[3]);
+            b.timesLeftHome = safeStod(dataNode[4]);
+            b.masksOutside = safeStod(dataNode[9]);
+            b.masksWork = safeStod(dataNode[12]);
+            b.avoidanceSymptomaticPeople = safeStod(dataNode[14]);
+            b.avoidanceWorkOutsideHome = safeStod(dataNode[18]);
+            b.avoidanceGuests = safeStod(dataNode[20]);
+            b.avoidanceSmallGatherings = safeStod(dataNode[21]);
+            b.avoidanceMediumGatherings = safeStod(dataNode[22]);
+            b.avoidanceLargeGatherings = safeStod(dataNode[23]);
+            b.outlookOnCovidDanger = safeStod(dataNode[29]);
+            b.lifeImpacted = safeStod(dataNode[31]);
+
+            trie.insertBehavior(b);
+            btree.insertBehavior(b);
         }
     }
 }
