@@ -3,10 +3,11 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "Records.h"
 
 class Trie {
 private:
-    const int ABC_SIZE = 256;
+    static const int ABC_SIZE = 256;
 
     struct Node {
         Node* children[ABC_SIZE];
@@ -25,10 +26,10 @@ private:
     int countryCount; //num of diff countries stored
     long long recordCount; //total num of rows stored
 
-    std::string normalize(const std::string& name);
-    std::string fixedDisplayName(const std::string& name);
+    std::string normalize(const std::string& name) const;
+    std::string fixedDisplayName(const std::string& name) const;
     Node* findNode(const std::string& normalizedKey) const;
-    Node* getOrCreateNode(const std::string& normalizedKey) const;
+    Node* getOrCreateNode(const std::string& normalizedKey);
     void collectNames (Node* node, std::vector<std::string>& names) const;
     void destroy(Node* node);
 
@@ -41,8 +42,8 @@ public:
     void insertBehavior(const BehaviorRecord& record);
 
     //Search O(L)
-    const std::vector<CaseRecord>& getCases() (const std::string& country) const;
-    const std::vector<BehaviorRecord>& getBehaviors() (const std::string& country) const;
+    const std::vector<CaseRecord>* getCases(const std::string& country) const;
+    const std::vector<BehaviorRecord>* getBehaviors(const std::string& country) const;
     bool contains (const std::string& country) const;
 
     //autocomplete
