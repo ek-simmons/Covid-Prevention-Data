@@ -13,7 +13,7 @@ Trie::~Trie() {
 }
 
 //post-order traversal
-void Trie::destroy(Trie::Node* root) {
+void Trie::destroy(Trie::Node* node) {
     if (node==nullptr) return;
     for (int i = 0; i < ABC_SIZE; i++) {
         destroy(node->children[i]);
@@ -23,7 +23,7 @@ void Trie::destroy(Trie::Node* root) {
 
 //name helpers
 
-std::string Trie::normalize(const std::string& name) {
+std::string Trie::normalize(const std::string& name) const {
     std::string key;
     for (char c : name) {
         if (c == '"') continue;
@@ -40,7 +40,7 @@ std::string Trie::normalize(const std::string& name) {
     return key;
 }
 
-std::string Trie::fixedDisplayName(const std::string& name) {
+std::string Trie::fixedDisplayName(const std::string& name) const {
     std::string shown;
     for (char c : name) {
         if (c == '"') continue;
@@ -50,7 +50,7 @@ std::string Trie::fixedDisplayName(const std::string& name) {
 }
 
 //Trie operations
-Trie:Node* Trie::findNode(const std::string& normalizedKey) const {
+Trie::Node* Trie::findNode(const std::string& normalizedKey) const {
     Node* current = root;
     for (char c : normalizedKey) {
         unsigned char index = (unsigned char)c;
@@ -72,45 +72,52 @@ Trie::Node* Trie::getOrCreateNode(const std::string& originalName) {
         }
         current = current->children[index];
     }
-    if (current==isEndofName) {
-        current->isEndofName = true;
+    if (!current->isEnd) {
+        current->isEnd = true;
         current->displayName = fixedDisplayName(originalName);
         countryCount++;
     }
     return current;
 }
 
-void Trie::insertCase(const caseRecord& record) {
+void Trie::insertCase(const CaseRecord& record) {
     if (normalize(record.country).empty()) return;
     Node* node = getOrCreateNode(record.country);
 
-    node->displayName = fixedDisplayName(record.country);
+
+    node->cases.push_back(record);
+    recordCount++;
+}
+void Trie::insertBehavior(const BehaviorRecord& record) {
+    if (normalize(record.country).empty()) return;
+    Node* node = getOrCreateNode(record.country);
+
     node->behaviors.push_back(record);
     recordCount++;
 }
 
-const std::vector<caseRecord>* Trie::getCases(const std::string& country) const {
+const std::vector<CaseRecord>* Trie::getCases(const std::string& country) const {
     Node* node = findNode(normalize(country));
-    if (node==nullptr || !node->isEndOfName) return nullptr;
-    return &node->behaviors;
+    if (node==nullptr || !node->isEnd) return nullptr;
+    return &node->cases;
 }
 
 const std::vector<BehaviorRecord>* Trie::getBehaviors(const std::string& country) const {
     Node* node = findNode(normalize(country));
-    if (node==nullptr || !node->isEndOfName) return nullptr;
+    if (node==nullptr || !node->isEnd) return nullptr;
     return &node->behaviors;
 }
 
 bool Trie::contains(const std::string& country) const {
     Node* node = findNode(normalize(country));
-    return node!=nullptr; && node->isEndofName;
+    return node != nullptr && node->isEnd;
 }
 
 //Listing names
 
 void Trie::collectNames(Node* node, std::vector<std::string>& names) const {
     if (node==nullptr) return;
-    if (node->isEndofName) {
+    if (node->isEnd) {
         names.push_back(node->displayName);
     }
     for (int i = 0; i < ABC_SIZE; i++) {
@@ -123,6 +130,12 @@ std::vector<std::string> Trie::startsWith(const std::string& prefix) const {
     std::string key = normalize(prefix);
     Node* start = key.empty() ? root : findNode(key);
     collectNames(start, names);
+    return names;
+}
+
+std::vector<std::string> Trie::getAllCountries() const {
+    std::vector<std::string> names;
+    collectNames(root, names);
     return names;
 }
 
