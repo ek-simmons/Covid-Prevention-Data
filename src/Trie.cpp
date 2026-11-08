@@ -50,7 +50,7 @@ std::string Trie::fixedDisplayName(const std::string& name) {
 }
 
 //Trie operations
-Trie:Node* Trie::findNode(const std::string& normalizedKey) const {
+Trie::Node* Trie::findNode(const std::string& normalizedKey) const {
     Node* current = root;
     for (char c : normalizedKey) {
         unsigned char index = (unsigned char)c;
