@@ -8,15 +8,26 @@
 #endif //COVID_PREVENTION_DATA_RECORDS_H
 #pragma once
 #include <string>
+#include <iostream>
 
 struct CaseRecord {
-    int day = 0;
-    int month = 0;
-    int year = 0;
-    long long cases = 0;
-    long long deaths = 0;
+    int day;
+    int month;
+    int year;
+    long long cases;
+    long long deaths;
     std::string country;
-    long long population = 0;
+    long long population;
+
+    CaseRecord() {
+        day = 0;
+        month = 0;
+        year = 0;
+        cases = 0;
+        deaths = 0;
+        country = "undefined";
+        population = 0;
+    }
 
     CaseRecord(std::string country, int day, int month, int year, long long cases, long long deaths, long long population) {
         this->country = country;
@@ -46,6 +57,25 @@ struct BehaviorRecord {
     double avoidanceLargeGatherings = 0;
     double outlookOnCovidDanger = 0;
     double lifeImpacted = 0;
+
+    BehaviorRecord() {
+        country = "undefined";
+        days = "0";
+        contacts = 0;
+        timesLeftHome = 0;
+        masksOutside = 0;
+        masksGrocery = 0;
+        masksWork = 0;
+        avoidanceSymptomaticPeople = 0;
+        avoidanceGoingOut = 0;
+        avoidanceWorkOutsideHome = 0;
+        avoidanceGuests = 0;
+        avoidanceSmallGatherings = 0;
+        avoidanceMediumGatherings = 0;
+        avoidanceLargeGatherings = 0;
+        outlookOnCovidDanger = 0;
+        lifeImpacted = 0;
+    }
 
     BehaviorRecord(std::string country, std::string days, double contacts, double timesLeftHome,
         double masksOutside, double masksGrocery, double masksWork, double avoidanceSymptomaticPeople,

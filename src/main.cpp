@@ -2,7 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
-#include <map>
+#include <chrono>
 #include "BTree.h"
 #include "Trie.h"
 #include "Records.h"
@@ -20,27 +20,33 @@ double safeStod(const string& s) {
 
 void readFile(const string& fileName, Trie& trie, BTree& btree);
 
+string removeQuotes(string text);
+
+string formatPrintStr(string str, int length);
+
+string daysToDate(string days);
+
 int main() {
     Trie trie;
     BTree btree;
 
     cout << "Loading datasets into B-Tree and Trie..." << endl;
-    readFile("covid.csv", trie, btree);
-    readFile("covid_behaviors.csv", trie, btree);
+    readFile("../src/covid.csv", trie, btree);
+    readFile("../src/covid_behaviors.csv", trie, btree);
 
     cout << "Data loaded successfully.\n";
     cout << "Total countries stored: " << trie.getCountryCount() << endl;
     cout << "Total records stored: " << trie.getRecordCount() << endl;
 
-    int choice;
+    string choice;
     while (true) {
         cout << "\n--- COVID Data Tracker ---" << endl;
         cout << "1. Search Country Data\n2. Exit\nChoice: ";
         cin >> choice;
 
-        if (choice == 2) {
+        if (choice == "2") {
             break;
-        } else if (choice == 1) {
+        } else if (choice == "1") {
             cout << "Enter country name: ";
             string country;
             cin.ignore();
@@ -51,8 +57,47 @@ int main() {
                 const auto* behaviors = trie.getBehaviors(country);
 
                 cout << "\n--- Records for " << country << " ---\n";
-                cout << "Total Case Logs: " << (cases ? cases->size() : 0) << endl;
-                cout << "Total Behavior Logs: " << (behaviors ? behaviors->size() : 0) << endl;
+                cout << "Total Case Logs: " << cases->size() << endl;
+                cout << "Total Behavior Logs: " << behaviors->size() << endl << endl;
+
+                if (cases->size() == 0 || behaviors->size() == 0) {
+                    cout << "Insufficient data to build table." << endl;
+                }
+                else {
+                    cout << "          |       | Times Left |          | Avoidance |Gathering |          | Belief of" << endl;
+                    cout << "   Date   | Cases |    Home    | Mask Use | Going Out |Attendance| Contacts |  Danger" << endl;
+                    cout << "----------|-------|------------|----------|-----------|----------|----------|----------" << endl;
+                }
+
+                for (int behavIdx = 0; behavIdx < behaviors->size(); behavIdx++) {
+                    int caseIdx = 0;
+                    string date = daysToDate(behaviors->at(behavIdx).days);
+                    bool presentInBoth = false;
+                    for (; caseIdx < cases->size(); caseIdx++) {
+                        string caseDate = to_string(cases->at(caseIdx).month) + "/" + to_string(cases->at(caseIdx).day) + "/" + to_string(cases->at(caseIdx).year);
+                        if (date == caseDate) {
+                            presentInBoth = true;
+                            break;
+                        }
+                    }
+                    if (!presentInBoth) {
+                        break;
+                    }
+
+                    // string popPercent = to_string(cases->at(caseIdx).cases / cases->at(caseIdx).population * 100); // difference too small to represent in doubles
+                    string maskUse = to_string((behaviors->at(behavIdx).masksGrocery + behaviors->at(behavIdx).masksOutside + behaviors->at(behavIdx).masksWork) / 3);
+                    string gatherings = to_string((behaviors->at(behavIdx).avoidanceSmallGatherings + behaviors->at(behavIdx).avoidanceMediumGatherings + behaviors->at(behavIdx).avoidanceLargeGatherings) / 3);
+
+                    cout << formatPrintStr(date, 10) << "|"
+                    << formatPrintStr(to_string(cases->at(caseIdx).cases), 7) << "|"
+                    << formatPrintStr(to_string(behaviors->at(behavIdx).timesLeftHome), 12) << "|"
+                    << formatPrintStr(maskUse, 10) << "|"
+                    << formatPrintStr(to_string(behaviors->at(behavIdx).avoidanceGoingOut), 11) << "|"
+                    << formatPrintStr(gatherings, 10) << "|"
+                    << formatPrintStr(to_string(behaviors->at(behavIdx).contacts), 10) << "|"
+                    << formatPrintStr(to_string(behaviors->at(behavIdx).outlookOnCovidDanger), 10)
+                    << endl;
+                }
             } else {
                 cout << "\nCountry not found in the database.\n";
             }
@@ -80,6 +125,7 @@ void readFile(const string& fileName, Trie& trie, BTree& btree) {
         string singleData;
 
         while (getline(lineStream, singleData, ',')) {
+            singleData = removeQuotes(singleData);
             dataNode.push_back(singleData);
         }
 
@@ -98,7 +144,7 @@ void readFile(const string& fileName, Trie& trie, BTree& btree) {
             btree.insertCase(c);
         }
 
-        else if (fileName.find("covid_behaviors.csv") != string::npos && dataNode.size() >= 32) {
+        else if (fileName.find("src/covid_behaviors.csv") != string::npos && dataNode.size() >= 32) {
             BehaviorRecord b;
             b.country = dataNode[0];
             b.days = dataNode[1];
@@ -107,6 +153,7 @@ void readFile(const string& fileName, Trie& trie, BTree& btree) {
             b.masksOutside = safeStod(dataNode[9]);
             b.masksWork = safeStod(dataNode[12]);
             b.avoidanceSymptomaticPeople = safeStod(dataNode[14]);
+            b.avoidanceGoingOut = safeStod(dataNode[15]);
             b.avoidanceWorkOutsideHome = safeStod(dataNode[18]);
             b.avoidanceGuests = safeStod(dataNode[20]);
             b.avoidanceSmallGatherings = safeStod(dataNode[21]);
@@ -119,4 +166,26 @@ void readFile(const string& fileName, Trie& trie, BTree& btree) {
             btree.insertBehavior(b);
         }
     }
+}
+
+string removeQuotes(string text) {
+    return text.substr(1, text.length() - 1);
+}
+
+string formatPrintStr(string str, int length) {
+    if (str.length() < length) {
+        int difference = length - str.length();
+        for (int i = 0; i < difference; i++) {
+            str += " ";
+        }
+    }
+    return str;
+}
+
+string daysToDate(string days) {
+    chrono::year_month_day startDate = 2020y / 03 / 29;
+    chrono::year_month_day date = chrono::sys_days(startDate) + chrono::days{stoi(days)};
+
+    string dateStr = to_string(static_cast<unsigned>(date.month())) + "/" + to_string(static_cast<unsigned>(date.day())) + "/" + to_string(static_cast<int>(date.year()));
+    return dateStr;
 }
