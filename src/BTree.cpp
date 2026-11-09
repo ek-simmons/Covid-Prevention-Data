@@ -105,6 +105,8 @@ void BTree::insertNonFull(BTreeNode* node, const std::string& key, const std::st
 
         node->keys[i + 1] = key;
         node->displayNames[i + 1] = display;
+        node->cases[i+1].clear();
+        node->behaviors[i+1].clear();
         if (cRec) node->cases[i + 1].push_back(*cRec);
         if (bRec) node->behaviors[i + 1].push_back(*bRec);
         countryCount++;

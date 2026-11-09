@@ -85,8 +85,17 @@ int main() {
                     }
 
                     // string popPercent = to_string(cases->at(caseIdx).cases / cases->at(caseIdx).population * 100); // difference too small to represent in doubles
-                    string maskUse = to_string((behaviors->at(behavIdx).masksGrocery + behaviors->at(behavIdx).masksOutside + behaviors->at(behavIdx).masksWork) / 3);
-                    string gatherings = to_string((behaviors->at(behavIdx).avoidanceSmallGatherings + behaviors->at(behavIdx).avoidanceMediumGatherings + behaviors->at(behavIdx).avoidanceLargeGatherings) / 3);
+                    double maskSum = 0;
+                    int maskCount = 0;
+                    for (double m : {behaviors->at(behavIdx).masksGrocery,
+                                     behaviors->at(behavIdx).masksOutside,
+                                     behaviors->at(behavIdx).masksWork}) {
+                        if (m > 0) {
+                            maskSum += m;
+                            maskCount++;
+                        }
+                                     }
+                    string maskUse = to_string(maskCount > 0 ? maskSum / maskCount : 0);                    string gatherings = to_string((behaviors->at(behavIdx).avoidanceSmallGatherings + behaviors->at(behavIdx).avoidanceMediumGatherings + behaviors->at(behavIdx).avoidanceLargeGatherings) / 3);
 
                     cout << formatPrintStr(date, 10) << "|"
                     << formatPrintStr(to_string(cases->at(caseIdx).cases), 7) << "|"
@@ -151,6 +160,7 @@ void readFile(const string& fileName, Trie& trie, BTree& btree) {
             b.contacts = safeStod(dataNode[3]);
             b.timesLeftHome = safeStod(dataNode[4]);
             b.masksOutside = safeStod(dataNode[9]);
+            b.masksGrocery = safeStod(dataNode[10]);
             b.masksWork = safeStod(dataNode[12]);
             b.avoidanceSymptomaticPeople = safeStod(dataNode[14]);
             b.avoidanceGoingOut = safeStod(dataNode[15]);
@@ -169,7 +179,10 @@ void readFile(const string& fileName, Trie& trie, BTree& btree) {
 }
 
 string removeQuotes(string text) {
-    return text.substr(1, text.length() - 1);
+    if (text.length() >= 2 && text.front() == '"' && text.back() == '"'){
+        return text.substr(1, text.length() - 2);
+    }
+    return text;
 }
 
 string formatPrintStr(string str, int length) {
