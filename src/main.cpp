@@ -26,6 +26,74 @@ string formatPrintStr(string str, int length);
 
 string daysToDate(string days);
 
+// Compares how fast the Trie and the B-Tree can search
+void compareStructures(const Trie& trie, const BTree& btree) {
+    vector<string> countries = trie.getAllCountries();
+    const int ROUNDS = 200;
+
+    // searching by full country name
+    int trieFound = 0;
+    auto start = chrono::high_resolution_clock::now();
+    for (int r = 0; r < ROUNDS; r++) {
+        for (int i = 0; i < countries.size(); i++) {
+            if (trie.getCases(countries[i]) != nullptr) {
+                trieFound++;
+            }
+        }
+    }
+    auto end = chrono::high_resolution_clock::now();
+    long long trieSearchTime = chrono::duration_cast<chrono::microseconds>(end - start).count();
+
+    int btreeFound = 0;
+    start = chrono::high_resolution_clock::now();
+    for (int r = 0; r < ROUNDS; r++) {
+        for (int i = 0; i < countries.size(); i++) {
+            if (btree.getCases(countries[i]) != nullptr) {
+                btreeFound++;
+            }
+        }
+    }
+    end = chrono::high_resolution_clock::now();
+    long long btreeSearchTime = chrono::duration_cast<chrono::microseconds>(end - start).count();
+
+    //search by prefix
+    int triePrefixFound = 0;
+    start = chrono::high_resolution_clock::now();
+    for (int r = 0; r < ROUNDS; r++) {
+        for (int i = 0; i < countries.size(); i++) {
+            string prefix = countries[i].substr(0, 3);
+            triePrefixFound += trie.startsWith(prefix).size();
+        }
+    }
+    end = chrono::high_resolution_clock::now();
+    long long triePrefixTime = chrono::duration_cast<chrono::microseconds>(end - start).count();
+
+    int btreePrefixFound = 0;
+    start = chrono::high_resolution_clock::now();
+    for (int r = 0; r < ROUNDS; r++) {
+        for (int i = 0; i < countries.size(); i++) {
+            string prefix = countries[i].substr(0, 3);
+            btreePrefixFound += btree.startsWith(prefix).size();
+        }
+    }
+    end = chrono::high_resolution_clock::now();
+    long long btreePrefixTime = chrono::duration_cast<chrono::microseconds>(end - start).count();
+
+    // print results
+    int totalSearches = ROUNDS * countries.size();
+    cout << "\n--- Trie vs B-Tree (" << totalSearches << " searches each) ---" << endl;
+    cout << "Full-name search:  Trie " << trieSearchTime << " microseconds | B-Tree "
+         << btreeSearchTime << " microseconds" << endl;
+    cout << "Prefix search:     Trie " << triePrefixTime << " microseconds | B-Tree "
+         << btreePrefixTime << " microseconds" << endl;
+
+    if (trieFound == btreeFound && triePrefixFound == btreePrefixFound) {
+        cout << "Both structures found the same results." << endl;
+    } else {
+        cout << "Warning: the structures found different results!" << endl;
+    }
+}
+
 int main() {
     Trie trie;
     BTree btree;
@@ -41,7 +109,7 @@ int main() {
     string choice;
     while (true) {
         cout << "\n--- COVID Data Tracker ---" << endl;
-        cout << "1. Search Country Data\n2. Exit\nChoice: ";
+        cout << "1. Search Country Data\n2. Exit\n3. Compare Trie vs B-Tree\nChoice: ";
         cin >> choice;
 
         if (choice == "2") {
@@ -110,8 +178,10 @@ int main() {
             } else {
                 cout << "\nCountry not found in the database.\n";
             }
+        } else if (choice =="3") {
+            compareStructures(trie,btree);
         } else {
-            cout << "Invalid choice. Try again.\n";
+            cout<< "Invalid choice. Try again. \n" << endl;
         }
     }
     return 0;
